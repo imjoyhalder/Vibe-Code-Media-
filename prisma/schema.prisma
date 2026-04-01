@@ -1,4 +1,6 @@
-﻿// Prisma schema for Vibecode Media Backend
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
   provider = "prisma-client"
@@ -7,59 +9,81 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-  id          String       @id @default(uuid())
-  email       String       @unique
-  name        String?
-  password    String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  mediaItems  MediaItem[]
-  playlists   Playlist[]
+  id        String    @id @default(uuid())
+  name  String    
+  email     String    @unique
+  avatarUrl String?
+  projects  Project[]
+  ratings   Rating[]
+  comments  Comment[]
+  createdAt DateTime  @default(now())
 }
 
-model MediaItem {
-  id          String      @id @default(uuid())
+model Project {
+  id          String    @id @default(uuid())
   title       String
-  description String?
-  type        MediaType   @default(UNKNOWN)
-  url         String
-  duration    Int?        // seconds
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  owner       User        @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  playlistItems PlaylistItem[]
+  description String
+  promptUsed  String    @db.Text
+  siteUrl     String?
+  repoUrl     String?
+  screenshot  String?
+  
+  // Relations
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  ratings     Rating[]
+  comments    Comment[]
+  tags        Tag[]     @relation("ProjectTags")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([authorId])
 }
 
-model Playlist {
-  id          String         @id @default(uuid())
-  name        String
-  description String?
-  owner       User           @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  playlistItems PlaylistItem[]
+model Rating {
+  id          String   @id @default(cuid())
+  vibes       Int      // 1-5
+  creativity  Int      // 1-5
+  usefulness  Int      // 1-5
+  cursedness  Int      // 1-5
+  
+  // Relations
+  userId      String
+  projectId   String
+  user        User     @relation(fields: [userId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  // Constraints: A user can only rate a specific project once
+  @@unique([userId, projectId])
+  @@index([projectId])
 }
 
-model PlaylistItem {
-  id          String      @id @default(uuid())
-  playlist    Playlist    @relation(fields: [playlistId], references: [id])
-  playlistId  String
-  mediaItem   MediaItem   @relation(fields: [mediaItemId], references: [id])
-  mediaItemId String
-  position    Int         @default(0)
-  createdAt   DateTime    @default(now())
+enum CommentType {
+  ROAST
+  TOAST
 }
 
-enum MediaType {
-  VIDEO
-  AUDIO
-  IMAGE
-  DOCUMENT
-  UNKNOWN
+model Comment {
+  id        String      @id @default(cuid())
+  content   String
+  type      CommentType @default(TOAST)
+  
+  userId    String
+  projectId String
+  user      User        @relation(fields: [userId], references: [id])
+  project   Project     @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime    @default(now())
 }
+
+model Tag {
+  id       String    @id @default(cuid())
+  name     String    @unique // e.g., "Next.js", "Claude", "Cursed"
+  projects Project[] @relation("ProjectTags")
+}
+
+
