@@ -1,6 +1,8 @@
 
 import dotenv from "dotenv";
 import express from "express";
+import mainRouter from "./routes/index.route.js";
+import { globalErrorHandler } from "./lib/globalErrorHandler.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -11,16 +13,16 @@ const PORT = Number(process.env.PORT || 5000);
 // Required JSON parser for incoming requests
 app.use(express.json());
 
-// Health check route
+// Routes
+app.use('/api', mainRouter);
+
+// Health check route (outside /api for direct access)
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to Vibecode Media API", status: "ok" });
 });
 
-// Generic 404 handler
-app.use((req, res) => {
-    res.status(404).json({ error: "Not found" });
-
-});
+// Global error handler
+app.use(globalErrorHandler);
 
 app.listen(PORT, () => {
     // console.log("database url:", process.env.DATABASE_URL);

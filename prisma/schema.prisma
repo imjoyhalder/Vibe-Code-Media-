@@ -15,6 +15,7 @@ model User {
   id        String    @id @default(uuid())
   name  String    
   email     String    @unique
+  password  String  
   avatarUrl String?
   projects  Project[]
   ratings   Rating[]
@@ -45,7 +46,7 @@ model Project {
 }
 
 model Rating {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   vibes       Int      // 1-5
   creativity  Int      // 1-5
   usefulness  Int      // 1-5
@@ -68,7 +69,7 @@ enum CommentType {
 }
 
 model Comment {
-  id        String      @id @default(cuid())
+  id        String      @id @default(uuid())
   content   String
   type      CommentType @default(TOAST)
   
@@ -81,7 +82,7 @@ model Comment {
 }
 
 model Tag {
-  id       String    @id @default(cuid())
+  id       String    @id @default(uuid())
   name     String    @unique // e.g., "Next.js", "Claude", "Cursed"
   projects Project[] @relation("ProjectTags")
 }
