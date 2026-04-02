@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { ProjectController } from './project.controller.js';
-import { createProjectReviewSchema } from './project.validation.js';
+import { createProjectSchema, createProjectReviewSchema } from './project.validation.js';
+import { authenticate } from '../../middleware/auth.middleware.js';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ const validate = (schema: any) => (req: Request, res: Response, next: NextFuncti
   }
 };
 
-router.post('/:projectId/review', validate(createProjectReviewSchema), ProjectController.createReview);
+router.post('/', authenticate, validate(createProjectSchema), ProjectController.createProject);
+router.post('/:projectId/review', authenticate, validate(createProjectReviewSchema), ProjectController.createReview);
 
 export default router;

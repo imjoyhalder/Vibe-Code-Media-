@@ -21,4 +21,18 @@ export const createProjectReviewSchema = z.object({
   }),
 });
 
+export const createProjectSchema = z.object({
+  body: z.object({
+    title: z.string().min(3, 'Title must be at least 3 characters').max(150, 'Title too long'),
+    description: z.string().min(10, 'Description must be at least 10 characters').max(4000, 'Description too long'),
+    promptUsed: z.string().min(1, 'promptUsed is required'),
+    siteUrl: z.string().url('Invalid siteUrl').optional(),
+    repoUrl: z.string().url('Invalid repoUrl').optional(),
+    screenshot: z.string().url('Invalid screenshot URL').optional(),
+    tags: z.array(z.string().min(1, 'Tag cannot be empty')).optional(),
+  }),
+});
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
 export type CreateProjectReviewInput = z.infer<typeof createProjectReviewSchema>;

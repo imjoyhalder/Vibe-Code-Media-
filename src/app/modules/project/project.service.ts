@@ -64,4 +64,46 @@ export class ProjectService {
       comment: createdComment,
     };
   }
+
+  static async createProject(data: {
+    authorId: string;
+    title: string;
+    description: string;
+    promptUsed: string;
+    siteUrl?: string;
+    repoUrl?: string;
+    screenshot?: string;
+    tags?: string[];
+  }) {
+    const author = await prisma.user.findUnique({ where: { id: data.authorId } });
+    if (!author) {
+      throw new AppError('Author not found', 404);
+    }
+
+    const createdProject = await prisma.project.create({
+      data: {
+        authorId: data.authorId,
+        title: data.title.trim(),
+        description: data.description.trim(),
+        promptUsed: data.promptUsed.trim(),
+        siteUrl: data.siteUrl?.trim() || undefined,
+        repoUrl: data.repoUrl?.trim() || undefined,
+        screenshot: data.screenshot?.trim() || undefined,
+        tags: data.tags
+          ? {
+              connectOrCreate: data.tags.map((tag) => ({
+                where: { name: tag.trim() },
+                create: { name: tag.trim() },
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        author: { select: { id: true, name: true, email: true } },
+        tags: true,
+      },
+    });
+
+    return createdProject;
+  }
 }
