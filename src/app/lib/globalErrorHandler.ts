@@ -14,21 +14,38 @@ export const globalErrorHandler = (
   // Log error
   console.error(err);
 
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = 'Resource not found';
-    error = new AppError(message, 404);
+  // Prisma known request errors
+  if (err.name === 'PrismaClientKnownRequestError') {
+    let message = 'Database operation failed';
+    let statusCode = 400;
+
+    const code = (err as any).code;
+    switch (code) {
+      case 'P2002':
+        message = 'Duplicate entry: A record with this information already exists';
+        statusCode = 409; // Conflict
+        break;
+      case 'P2025':
+        message = 'Resource not found';
+        statusCode = 404;
+        break;
+      case 'P2003':
+        message = 'Invalid reference: Related record does not exist';
+        statusCode = 400;
+        break;
+      case 'P1001':
+        message = 'Database connection error';
+        statusCode = 503; // Service Unavailable
+        break;
+      default:
+        message = `Database error: ${err.message}`;
+    }
+    error = new AppError(message, statusCode);
   }
 
-  // Mongoose duplicate key
-  if (err.name === 'MongoError' && (err as any).code === 11000) {
-    const message = 'Duplicate field value entered';
-    error = new AppError(message, 400);
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const message = Object.values((err as any).errors).map((val: any) => val.message).join(', ');
+  // Prisma validation errors
+  if (err.name === 'PrismaClientValidationError') {
+    const message = 'Invalid data provided';
     error = new AppError(message, 400);
   }
 
@@ -41,17 +58,6 @@ export const globalErrorHandler = (
   if (err.name === 'TokenExpiredError') {
     const message = 'Token expired';
     error = new AppError(message, 401);
-  }
-
-  // Prisma errors
-  if (err.name === 'PrismaClientKnownRequestError') {
-    const message = 'Database operation failed';
-    error = new AppError(message, 400);
-  }
-
-  if (err.name === 'PrismaClientValidationError') {
-    const message = 'Invalid data provided';
-    error = new AppError(message, 400);
   }
 
   // Send error response

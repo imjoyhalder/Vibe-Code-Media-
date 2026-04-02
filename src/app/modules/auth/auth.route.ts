@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import { AuthController } from './auth.controller.js';
 import { registerSchema, loginSchema } from './auth.validation.js';
 
 const router = Router();
 
 // Middleware to validate request
-const validate = (schema: any) => (req: any, res: any, next: any) => {
+const validate = (schema: any) => (req: Request, res: Response, next: NextFunction) => {
   try {
     schema.parse({ body: req.body });
     next();

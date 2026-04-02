@@ -14,7 +14,7 @@ const PORT = Number(process.env.PORT || 5000);
 app.use(express.json());
 
 // Routes
-app.use('/api', mainRouter);
+app.use('/api/v1', mainRouter);
 
 // Health check route (outside /api for direct access)
 app.get("/", (req, res) => {
