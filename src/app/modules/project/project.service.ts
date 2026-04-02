@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../lib/AppError.js';
 import { deleteImage } from '../../lib/cloudinary.js';
+import type { Rating, Prisma } from '../../../generated/prisma/client.js';
 
 type ProjectCreateData = {
     authorId: string;
@@ -28,7 +29,7 @@ type ProjectUpdateData = {
 export class ProjectService {
 
     static async createProject(data: ProjectCreateData) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const author = await tx.user.findUnique({ where: { id: data.authorId } });
             if (!author) {
                 throw new AppError('Author not found', 404);
@@ -64,7 +65,7 @@ export class ProjectService {
     }
 
     static async createReview(projectId: string, userId: string, ratings: Record<string, number>, commentData?: { content: string; type?: 'ROAST' | 'TOAST' }) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const project = await tx.project.findUnique({ where: { id: projectId } });
             if (!project) {
                 throw new AppError('Project not found', 404);
@@ -148,7 +149,7 @@ export class ProjectService {
         const oldPublicId = project.screenshotPublicId;
 
         // Update in database (within transaction)
-        const updatedProject = await prisma.$transaction(async (tx) => {
+        const updatedProject = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const updateData: any = {};
             if (data.title !== undefined) updateData.title = data.title.trim();
             if (data.description !== undefined) updateData.description = data.description.trim();
@@ -206,7 +207,7 @@ export class ProjectService {
         }
 
         // Delete from database first (within transaction)
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Delete related ratings and comments explicitly for safety
             await tx.rating.deleteMany({ where: { projectId } });
             await tx.comment.deleteMany({ where: { projectId } });
@@ -370,17 +371,17 @@ export class ProjectService {
                 },
             });
 
-            const projectsWithScores = projects.map((project) => {
+            const projectsWithScores = projects.map((project: any) => {
                 const ratings = project.ratings;
-                const avgVibes = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.vibes, 0) / ratings.length : 0;
-                const avgCreativity = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.creativity, 0) / ratings.length : 0;
-                const avgUsefulness = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.usefulness, 0) / ratings.length : 0;
-                const avgCursedness = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.cursedness, 0) / ratings.length : 0;
+                const avgVibes = ratings.length > 0 ? ratings.reduce((sum: number, r: Rating) => sum + r.vibes, 0) / ratings.length : 0;
+                const avgCreativity = ratings.length > 0 ? ratings.reduce((sum: number, r: Rating) => sum + r.creativity, 0) / ratings.length : 0;
+                const avgUsefulness = ratings.length > 0 ? ratings.reduce((sum: number, r: Rating) => sum + r.usefulness, 0) / ratings.length : 0;
+                const avgCursedness = ratings.length > 0 ? ratings.reduce((sum: number, r: Rating) => sum + r.cursedness, 0) / ratings.length : 0;
                 const vibeScore = (avgVibes + avgCreativity + avgUsefulness + avgCursedness) / 4;
                 return { ...project, vibeScore };
             });
 
-            projectsWithScores.sort((a, b) => b.vibeScore - a.vibeScore);
+            projectsWithScores.sort((a: any, b: any) => b.vibeScore - a.vibeScore);
 
             const paginated = projectsWithScores.slice(skip, skip + limit);
             return {

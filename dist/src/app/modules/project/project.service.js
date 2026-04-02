@@ -95,26 +95,21 @@ export class ProjectService {
         });
     }
     static async updateProject(projectId, userId, data) {
-        return await prisma.$transaction(async (tx) => {
-            const project = await tx.project.findUnique({
-                where: { id: projectId },
-                include: { author: true },
-            });
-            if (!project) {
-                throw new AppError('Project not found', 404);
-            }
-            if (project.authorId !== userId) {
-                throw new AppError('Unauthorized: only the project owner can update this project', 403);
-            }
-            // If new screenshot is provided, delete the old one
-            if (data.screenshotPublicId && project.screenshotPublicId && data.screenshotPublicId !== project.screenshotPublicId) {
-                try {
-                    await deleteImage(project.screenshotPublicId);
-                }
-                catch (error) {
-                    console.error('Failed to delete old screenshot from cloudinary:', error);
-                }
-            }
+        // Fetch project first (outside transaction)
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { author: true },
+        });
+        if (!project) {
+            throw new AppError('Project not found', 404);
+        }
+        if (project.authorId !== userId) {
+            throw new AppError('Unauthorized: only the project owner can update this project', 403);
+        }
+        // Store old public ID for deletion
+        const oldPublicId = project.screenshotPublicId;
+        // Update in database (within transaction)
+        const updatedProject = await prisma.$transaction(async (tx) => {
             const updateData = {};
             if (data.title !== undefined)
                 updateData.title = data.title.trim();
@@ -139,7 +134,7 @@ export class ProjectService {
                     })),
                 };
             }
-            const updatedProject = await tx.project.update({
+            return await tx.project.update({
                 where: { id: projectId },
                 data: updateData,
                 include: {
@@ -147,8 +142,18 @@ export class ProjectService {
                     tags: true,
                 },
             });
-            return updatedProject;
         });
+        // Delete old screenshot from Cloudinary AFTER successful DB update
+        // Only delete if a new screenshot was provided and it's different from the old one
+        if (data.screenshotPublicId && oldPublicId && data.screenshotPublicId !== oldPublicId) {
+            try {
+                await deleteImage(oldPublicId);
+            }
+            catch (error) {
+                console.error('Failed to delete old screenshot from cloudinary:', error);
+            }
+        }
+        return updatedProject;
     }
     static async deleteProject(projectId, userId) {
         // First, fetch project to get Cloudinary public ID

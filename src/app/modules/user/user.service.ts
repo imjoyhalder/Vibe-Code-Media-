@@ -1,12 +1,29 @@
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../lib/AppError.js';
 import { deleteImage } from '../../lib/cloudinary.js';
+import type { Rating, Comment, Prisma } from '../../../generated/prisma/client.js';
 
 type UpdateProfileData = {
     name?: string;
     bio?: string;
     avatarUrl?: string;
     avatarPublicId?: string;
+};
+
+type RatingWithProject = Rating & {
+    project: {
+        id: string;
+        title: string;
+        screenshot: string | null;
+    };
+};
+
+type CommentWithProject = Comment & {
+    project: {
+        id: string;
+        title: string;
+        screenshot: string | null;
+    };
 };
 
 export class UserService {
@@ -31,7 +48,7 @@ export class UserService {
     }
 
     static async updateProfile(userId: string, data: UpdateProfileData) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.findUnique({ where: { id: userId } });
             if (!user) {
                 throw new AppError('User not found', 404);
@@ -130,8 +147,8 @@ export class UserService {
 
         // Combine and sort by createdAt
         const activity = [
-            ...ratings.map(r => ({ activityType: 'rating', ...r })),
-            ...comments.map(c => ({ activityType: 'comment', ...c })),
+            ...ratings.map((r: RatingWithProject) => ({ activityType: 'rating', ...r })),
+            ...comments.map((c: CommentWithProject) => ({ activityType: 'comment', ...c })),
         ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         // Paginate the combined activity

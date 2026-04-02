@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/app/server.ts",
-    "build": "tsc --outDir dist",
+    "build": "tsc",
+    "start": "tsx dist/src/app/server.js",
+    "clean": "rm -rf dist",
+    "build:clean": "npm run clean && npm run build",
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
     "generate": "npx prisma generate"
@@ -35,7 +38,9 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^25.5.0",
     "@types/pg": "^8.20.0",
+    "esbuild": "^0.27.5",
     "prisma": "^7.6.0",
+    "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }
