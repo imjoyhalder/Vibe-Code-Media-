@@ -24,13 +24,14 @@ model User {
 }
 
 model Project {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  promptUsed  String    @db.Text
-  siteUrl     String?
-  repoUrl     String?
-  screenshot  String?
+  id                 String    @id @default(uuid())
+  title              String
+  description        String
+  promptUsed         String    @db.Text
+  siteUrl            String?
+  repoUrl            String?
+  screenshot         String?
+  screenshotPublicId String?
   
   // Relations
   authorId    String

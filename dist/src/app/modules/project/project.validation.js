@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 export const createProjectReviewSchema = z.object({
     params: z.object({
         projectId: z.string().uuid('Invalid projectId').nonempty(),
@@ -14,13 +13,12 @@ export const createProjectReviewSchema = z.object({
         }),
         comment: z
             .object({
-                content: z.string().min(5, 'Comment must be at least 5 characters').max(1000, 'Comment too long'),
-                type: z.enum(['ROAST', 'TOAST']).optional(),
-            })
+            content: z.string().min(5, 'Comment must be at least 5 characters').max(1000, 'Comment too long'),
+            type: z.enum(['ROAST', 'TOAST']).optional(),
+        })
             .optional(),
     }),
 });
-
 export const createRatingSchema = z.object({
     params: z.object({
         projectId: z.string().uuid('Invalid projectId').nonempty(),
@@ -32,7 +30,6 @@ export const createRatingSchema = z.object({
         cursedness: z.number().int().min(1, 'Cursedness must be between 1 and 5').max(5, 'Cursedness must be between 1 and 5'),
     }),
 });
-
 export const getProjectsSchema = z.object({
     query: z.object({
         tag: z.string().optional(),
@@ -41,7 +38,6 @@ export const getProjectsSchema = z.object({
         limit: z.string().regex(/^\d+$/).transform(Number).optional(),
     }),
 });
-
 export const updateProjectSchema = z.object({
     params: z.object({
         projectId: z.string().uuid('Invalid projectId').nonempty(),
@@ -55,7 +51,6 @@ export const updateProjectSchema = z.object({
         tags: z.array(z.string().min(1, 'Tag cannot be empty')).optional(),
     }),
 });
-
 export const createProjectSchema = z.object({
     body: z.object({
         title: z.string().min(3, 'Title must be at least 3 characters').max(150, 'Title too long'),
@@ -66,13 +61,3 @@ export const createProjectSchema = z.object({
         tags: z.array(z.string().min(1, 'Tag cannot be empty')).optional(),
     }),
 });
-
-export type GetProjectsInput = z.infer<typeof getProjectsSchema>;
-
-export type CreateRatingInput = z.infer<typeof createRatingSchema>;
-
-export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
-
-export type CreateProjectInput = z.infer<typeof createProjectSchema>;
-
-export type CreateProjectReviewInput = z.infer<typeof createProjectReviewSchema>;
