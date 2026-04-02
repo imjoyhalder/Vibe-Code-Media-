@@ -151,34 +151,37 @@ export class ProjectService {
         });
     }
     static async deleteProject(projectId, userId) {
-        return await prisma.$transaction(async (tx) => {
-            const project = await tx.project.findUnique({
-                where: { id: projectId },
-                include: { author: true },
-            });
-            if (!project) {
-                throw new AppError('Project not found', 404);
-            }
-            if (project.authorId !== userId) {
-                throw new AppError('Unauthorized: only the project owner can delete this project', 403);
-            }
+        // First, fetch project to get Cloudinary public ID
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { author: true },
+        });
+        if (!project) {
+            throw new AppError('Project not found', 404);
+        }
+        if (project.authorId !== userId) {
+            throw new AppError('Unauthorized: only the project owner can delete this project', 403);
+        }
+        // Delete from database first (within transaction)
+        await prisma.$transaction(async (tx) => {
             // Delete related ratings and comments explicitly for safety
             await tx.rating.deleteMany({ where: { projectId } });
             await tx.comment.deleteMany({ where: { projectId } });
             // Delete the project (tags will be disconnected due to cascade)
             await tx.project.delete({ where: { id: projectId } });
-            // If screenshotPublicId exists, delete from cloudinary
-            if (project.screenshotPublicId) {
-                try {
-                    await deleteImage(project.screenshotPublicId);
-                }
-                catch (error) {
-                    // Log but don't fail the deletion
-                    console.error('Failed to delete screenshot from cloudinary:', error);
-                }
-            }
-            return { message: 'Project deleted successfully' };
         });
+        // Delete screenshot from Cloudinary AFTER successful DB deletion
+        // This is done outside the transaction to ensure it doesn't block the DB operation
+        if (project.screenshotPublicId) {
+            try {
+                await deleteImage(project.screenshotPublicId);
+            }
+            catch (error) {
+                // Log but don't fail - image orphaning is less critical than DB deletion
+                console.error('Failed to delete screenshot from cloudinary:', error);
+            }
+        }
+        return { message: 'Project deleted successfully' };
     }
     static async getProjectReviews(projectId) {
         const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -284,7 +287,13 @@ export class ProjectService {
             const projects = await prisma.project.findMany({
                 where,
                 include: {
-                    author: { select: { id: true, name: true, email: true } },
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
                     tags: true,
                     ratings: true,
                 },

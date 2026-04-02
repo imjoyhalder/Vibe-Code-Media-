@@ -130,28 +130,25 @@ export class ProjectService {
 
 
     static async updateProject(projectId: string, userId: string, data: Partial<ProjectUpdateData>) {
-        return await prisma.$transaction(async (tx) => {
-            const project = await tx.project.findUnique({
-                where: { id: projectId },
-                include: { author: true },
-            });
-            if (!project) {
-                throw new AppError('Project not found', 404);
-            }
+        // Fetch project first (outside transaction)
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { author: true },
+        });
 
-            if (project.authorId !== userId) {
-                throw new AppError('Unauthorized: only the project owner can update this project', 403);
-            }
+        if (!project) {
+            throw new AppError('Project not found', 404);
+        }
 
-            // If new screenshot is provided, delete the old one
-            if (data.screenshotPublicId && project.screenshotPublicId && data.screenshotPublicId !== project.screenshotPublicId) {
-                try {
-                    await deleteImage(project.screenshotPublicId);
-                } catch (error) {
-                    console.error('Failed to delete old screenshot from cloudinary:', error);
-                }
-            }
+        if (project.authorId !== userId) {
+            throw new AppError('Unauthorized: only the project owner can update this project', 403);
+        }
 
+        // Store old public ID for deletion
+        const oldPublicId = project.screenshotPublicId;
+
+        // Update in database (within transaction)
+        const updatedProject = await prisma.$transaction(async (tx) => {
             const updateData: any = {};
             if (data.title !== undefined) updateData.title = data.title.trim();
             if (data.description !== undefined) updateData.description = data.description.trim();
@@ -170,7 +167,7 @@ export class ProjectService {
                 };
             }
 
-            const updatedProject = await tx.project.update({
+            return await tx.project.update({
                 where: { id: projectId },
                 data: updateData,
                 include: {
@@ -178,44 +175,58 @@ export class ProjectService {
                     tags: true,
                 },
             });
-
-            return updatedProject;
         });
+
+        // Delete old screenshot from Cloudinary AFTER successful DB update
+        // Only delete if a new screenshot was provided and it's different from the old one
+        if (data.screenshotPublicId && oldPublicId && data.screenshotPublicId !== oldPublicId) {
+            try {
+                await deleteImage(oldPublicId);
+            } catch (error) {
+                console.error('Failed to delete old screenshot from cloudinary:', error);
+            }
+        }
+
+        return updatedProject;
     }
 
     static async deleteProject(projectId: string, userId: string) {
-        return await prisma.$transaction(async (tx) => {
-            const project = await tx.project.findUnique({
-                where: { id: projectId },
-                include: { author: true },
-            });
-            if (!project) {
-                throw new AppError('Project not found', 404);
-            }
+        // First, fetch project to get Cloudinary public ID
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { author: true },
+        });
+        
+        if (!project) {
+            throw new AppError('Project not found', 404);
+        }
 
-            if (project.authorId !== userId) {
-                throw new AppError('Unauthorized: only the project owner can delete this project', 403);
-            }
+        if (project.authorId !== userId) {
+            throw new AppError('Unauthorized: only the project owner can delete this project', 403);
+        }
 
+        // Delete from database first (within transaction)
+        await prisma.$transaction(async (tx) => {
             // Delete related ratings and comments explicitly for safety
             await tx.rating.deleteMany({ where: { projectId } });
             await tx.comment.deleteMany({ where: { projectId } });
 
             // Delete the project (tags will be disconnected due to cascade)
             await tx.project.delete({ where: { id: projectId } });
-
-            // If screenshotPublicId exists, delete from cloudinary
-            if (project.screenshotPublicId) {
-                try {
-                    await deleteImage(project.screenshotPublicId);
-                } catch (error) {
-                    // Log but don't fail the deletion
-                    console.error('Failed to delete screenshot from cloudinary:', error);
-                }
-            }
-
-            return { message: 'Project deleted successfully' };
         });
+
+        // Delete screenshot from Cloudinary AFTER successful DB deletion
+        // This is done outside the transaction to ensure it doesn't block the DB operation
+        if (project.screenshotPublicId) {
+            try {
+                await deleteImage(project.screenshotPublicId);
+            } catch (error) {
+                // Log but don't fail - image orphaning is less critical than DB deletion
+                console.error('Failed to delete screenshot from cloudinary:', error);
+            }
+        }
+
+        return { message: 'Project deleted successfully' };
     }
 
 

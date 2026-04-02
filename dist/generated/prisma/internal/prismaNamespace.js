@@ -88,6 +88,8 @@ export const UserScalarFieldEnum = {
     email: 'email',
     password: 'password',
     avatarUrl: 'avatarUrl',
+    avatarPublicId: 'avatarPublicId',
+    bio: 'bio',
     createdAt: 'createdAt'
 };
 export const ProjectScalarFieldEnum = {
@@ -109,6 +111,7 @@ export const RatingScalarFieldEnum = {
     creativity: 'creativity',
     usefulness: 'usefulness',
     cursedness: 'cursedness',
+    createdAt: 'createdAt',
     userId: 'userId',
     projectId: 'projectId'
 };

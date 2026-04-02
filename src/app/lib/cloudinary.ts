@@ -33,10 +33,21 @@ export const uploadImage = async (fileBuffer: Buffer, folder: string = 'vibecode
 
 export const deleteImage = async (publicId: string): Promise<void> => {
   return new Promise((resolve, reject) => {
+    if (!publicId || publicId.trim() === '') {
+      reject(new Error('Public ID is required for deletion'));
+      return;
+    }
+
     cloudinary.uploader.destroy(publicId, (error, result) => {
       if (error) {
+        console.error('Cloudinary delete error:', error);
         reject(error);
+      } else if (result && result.result === 'ok') {
+        console.log(`Successfully deleted image from Cloudinary: ${publicId}`);
+        resolve();
       } else {
+        console.warn(`Image deletion result for ${publicId}:`, result);
+        // Even if result is not 'ok', resolve as it might already be deleted
         resolve();
       }
     });
