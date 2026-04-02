@@ -24,8 +24,12 @@ app.get("/", (req, res) => {
 // Global error handler
 app.use(globalErrorHandler);
 
-app.listen(PORT, () => {
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
     // console.log("database url:", process.env.DATABASE_URL);
     console.log(`Server is running on http://localhost:${PORT}`);
-});
+  });
+}
+
+export default app;
 
