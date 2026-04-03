@@ -3,12 +3,22 @@ import dotenv from "dotenv";
 import express from "express";
 import mainRouter from "./routes/index.route.js";
 import { globalErrorHandler } from "./lib/globalErrorHandler.js";
-
+import cors from "cors"
 // Load environment variables from .env file
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
+
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}))
+
 
 // Required JSON parser for incoming requests
 app.use(express.json());
