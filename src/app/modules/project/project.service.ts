@@ -55,7 +55,14 @@ export class ProjectService {
                         : undefined,
                 },
                 include: {
-                    author: { select: { id: true, name: true, email: true } },
+                    author: {
+                        select:
+                        {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    },
                     tags: true,
                 },
             });
@@ -197,7 +204,7 @@ export class ProjectService {
             where: { id: projectId },
             include: { author: true },
         });
-        
+
         if (!project) {
             throw new AppError('Project not found', 404);
         }
@@ -401,7 +408,7 @@ export class ProjectService {
                     },
                     orderBy,
                     skip,
-                    take: limit,
+                    take: Number(limit),
                 }),
                 prisma.project.count({ where }),
             ]);
