@@ -14,7 +14,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new AppError('User already exists', 409);
+      throw new AppError('User already registered', 409);
     }
 
     // Hash password
@@ -56,13 +56,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Wrong email address', 401);
     }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Wrong password', 401);
     }
 
     // Generate JWT token

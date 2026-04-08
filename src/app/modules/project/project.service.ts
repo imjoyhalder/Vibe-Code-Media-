@@ -375,6 +375,7 @@ export class ProjectService {
                     },
                     tags: true,
                     ratings: true,
+                    comments: true,
                 },
             });
 
