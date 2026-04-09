@@ -99,7 +99,7 @@ export class UserService {
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
-                take: limit,
+                take: Number(limit),
             }),
             prisma.project.count({ where: { authorId: userId } }),
         ]);

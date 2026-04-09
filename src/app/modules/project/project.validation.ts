@@ -5,7 +5,6 @@ export const createProjectReviewSchema = z.object({
         projectId: z.string().uuid('Invalid projectId').nonempty(),
     }),
     body: z.object({
-        userId: z.string().uuid('Invalid userId').nonempty(),
         rating: z.object({
             vibes: z.number().int().min(1, 'Vibes must be between 1 and 5').max(5, 'Vibes must be between 1 and 5'),
             creativity: z.number().int().min(1, 'Creativity must be between 1 and 5').max(5, 'Creativity must be between 1 and 5'),
@@ -36,6 +35,7 @@ export const createRatingSchema = z.object({
 export const getProjectsSchema = z.object({
     query: z.object({
         tag: z.string().optional(),
+        title: z.string().optional(),
         sort: z.enum(['vibeScore', 'createdAt']).optional(),
         page: z.string().regex(/^\d+$/).transform(Number).optional(),
         limit: z.string().regex(/^\d+$/).transform(Number).optional(),

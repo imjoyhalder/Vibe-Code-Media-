@@ -29,49 +29,46 @@ type ProjectUpdateData = {
 export class ProjectService {
 
     static async createProject(data: ProjectCreateData) {
-        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            const author = await tx.user.findUnique({ where: { id: data.authorId } });
-            if (!author) {
-                throw new AppError('Author not found', 404);
-            }
+        const author = await prisma.user.findUnique({ where: { id: data.authorId } });
+        if (!author) {
+            throw new AppError('Author not found', 404);
+        }
 
-            const createdProject = await tx.project.create({
-                data: {
-                    authorId: data.authorId,
-                    title: data.title.trim(),
-                    description: data.description.trim(),
-                    promptUsed: data.promptUsed.trim(),
-                    siteUrl: data.siteUrl?.trim() || undefined,
-                    repoUrl: data.repoUrl?.trim() || undefined,
-                    screenshot: data.screenshot?.trim() || undefined,
-                    screenshotPublicId: data.screenshotPublicId?.trim() || undefined,
-                    tags: data.tags
-                        ? {
-                            connectOrCreate: data.tags.map((tag) => ({
-                                where: { name: tag.trim() },
-                                create: { name: tag.trim() },
-                            })),
-                        }
-                        : undefined,
-                },
-                include: {
-                    author: {
-                        select:
-                        {
-                            id: true,
-                            name: true,
-                            email: true
-                        }
+        const createdProject = await prisma.project.create({
+            data: {
+                authorId: data.authorId,
+                title: data.title.trim(),
+                description: data.description.trim(),
+                promptUsed: data.promptUsed.trim(),
+                siteUrl: data.siteUrl?.trim() || undefined,
+                repoUrl: data.repoUrl?.trim() || undefined,
+                screenshot: data.screenshot?.trim() || undefined,
+                screenshotPublicId: data.screenshotPublicId?.trim() || undefined,
+                tags: data.tags
+                    ? {
+                        connectOrCreate: data.tags.map((tag) => ({
+                            where: { name: tag.trim() },
+                            create: { name: tag.trim() },
+                        })),
+                    }
+                    : undefined,
+            },
+            include: {
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
                     },
-                    tags: true,
                 },
-            });
-
-            return createdProject;
+                tags: true,
+            },
         });
+
+        return createdProject;
     }
 
-    static async createReview(projectId: string, userId: string, ratings: Record<string, number>, commentData?: { content: string; type?: 'ROAST' | 'TOAST' }) {
+    static async createReview(projectId: string, userId: string, rating: Record<string, number>, commentData?: { content: string; type?: 'ROAST' | 'TOAST' }) {
         return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const project = await tx.project.findUnique({ where: { id: projectId } });
             if (!project) {
@@ -102,10 +99,10 @@ export class ProjectService {
                     data: {
                         projectId,
                         userId,
-                        vibes: ratings.vibes,
-                        creativity: ratings.creativity,
-                        usefulness: ratings.usefulness,
-                        cursedness: ratings.cursedness,
+                        vibes: rating.vibes,
+                        creativity: rating.creativity,
+                        usefulness: rating.usefulness,
+                        cursedness: rating.cursedness,
                     },
                 });
             } catch (error: any) {
@@ -345,8 +342,8 @@ export class ProjectService {
         return comments;
     }
 
-    static async getProjects(filters: { tag?: string; sort?: 'vibeScore' | 'createdAt'; page?: number; limit?: number }) {
-        const { tag, sort, page = 1, limit = 10 } = filters;
+    static async getProjects(filters: { tag?: string; title?: string; sort?: 'vibeScore' | 'createdAt'; page?: number; limit?: number }) {
+        const { tag, title, sort, page = 1, limit = 10 } = filters;
         const skip = (page - 1) * limit;
 
         let where: any = {};
@@ -355,6 +352,13 @@ export class ProjectService {
                 some: {
                     name: tag,
                 },
+            };
+        }
+
+        if (title) {
+            where.title = {
+                contains: title,
+                mode: 'insensitive',
             };
         }
 
@@ -403,9 +407,15 @@ export class ProjectService {
                 prisma.project.findMany({
                     where,
                     include: {
-                        author: { select: { id: true, name: true, email: true } },
+                        author: { select: { id: true, name: true, email: true, avatarUrl: true } },
                         tags: true,
                         ratings: true,
+                        comments: {
+                            include: {
+                                user: { select: { id: true, name: true, avatarUrl: true } },
+                            },
+                            orderBy: { createdAt: 'desc' },
+                        },
                     },
                     orderBy,
                     skip,
@@ -426,8 +436,17 @@ export class ProjectService {
     static async getProjectById(projectId: string) {
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            include: {
-                author: { select: { id: true, name: true, email: true } },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                promptUsed: true,
+                siteUrl: true,
+                repoUrl: true,
+                screenshot: true,
+                screenshotPublicId: true,
+                createdAt: true,
+                author: { select: { id: true, name: true, email: true, avatarUrl: true } },
                 tags: true,
                 ratings: {
                     include: {
