@@ -374,7 +374,8 @@ export class ProjectService {
                         {
                             id: true,
                             name: true,
-                            email: true
+                            email: true, 
+                            avatarUrl: true
                         }
                     },
                     tags: true,

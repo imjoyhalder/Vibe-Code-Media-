@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { ProjectController } from './project.controller.js';
 import { createProjectSchema, createProjectReviewSchema, updateProjectSchema, createRatingSchema, getProjectsSchema } from './project.validation.js';
+// Auth middleware located in src/app/middleware/auth.middleware.ts
+// It protects routes that require a valid JWT token and sets req.userId
 import { authenticate } from '../auth/auth.middleware.js';
 import multer from 'multer';
 

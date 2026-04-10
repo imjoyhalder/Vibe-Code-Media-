@@ -13,6 +13,8 @@ const PORT = Number(process.env.PORT || 5000);
 app.use(cors({
     origin: [
         'http://localhost:3000',
+        process.env.FRONTEND_URL || 'https://vibecode-gray.vercel.app', 
+
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
